@@ -1,2 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#315f4a"/><g fill="#fff9f0"><ellipse cx="256" cy="310" rx="92" ry="78"/><ellipse cx="151" cy="211" rx="39" ry="52" transform="rotate(-22 151 211)"/><ellipse cx="230" cy="157" rx="39" ry="52" transform="rotate(-7 230 157)"/><ellipse cx="316" cy="161" rx="39" ry="52" transform="rotate(8 316 161)"/><ellipse cx="385" cy="222" rx="39" ry="52" transform="rotate(22 385 222)"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Braune Pfote auf beigem Hintergrund">
+  <defs>
+    <linearGradient id="sand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f5eadc"/>
+      <stop offset="1" stop-color="#ddc5a8"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="11" stdDeviation="10" flood-color="#563521" flood-opacity=".2"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#sand)"/>
+  <rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#fffaf3" stroke-width="9" opacity=".75"/>
+  <g fill="#76503a" filter="url(#soft-shadow)">
+    <ellipse cx="256" cy="323" rx="101" ry="83"/>
+    <ellipse cx="145" cy="218" rx="42" ry="57" transform="rotate(-25 145 218)"/>
+    <ellipse cx="225" cy="157" rx="42" ry="58" transform="rotate(-8 225 157)"/>
+    <ellipse cx="315" cy="159" rx="42" ry="58" transform="rotate(9 315 159)"/>
+    <ellipse cx="390" cy="225" rx="42" ry="57" transform="rotate(25 390 225)"/>
+  </g>
+</svg>
 
