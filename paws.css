@@ -7,3 +7,7 @@
 /* Neues beiges Yuna-Logo */
 .login-card .logo,.brand-icon{overflow:hidden;background:#ead8c0;box-shadow:0 5px 14px #76503a24}.login-card .logo img,.brand-icon img{display:block;width:100%;height:100%;object-fit:cover}.brand-icon{border:1px solid #d6bea3}
 
+/* Yuna-Illustration nach Fotovorlage */
+.dog-map{min-height:550px;background:linear-gradient(180deg,#f4eee3,#fffaf1)}.dog-shape{display:none}.dog-illustration{position:absolute;z-index:1;top:35px;bottom:12px;left:50%;width:auto;height:500px;max-width:56%;object-fit:contain;transform:translateX(-50%);pointer-events:none}.direction{top:10px;z-index:5;display:flex;gap:8px;align-items:center;padding:5px 10px;border:1px solid #dccab5;border-radius:999px;background:#fffaf1e8;box-shadow:0 3px 10px #76503a14;white-space:nowrap}.direction span{margin:0}.map-paw{width:136px;min-height:88px;padding:8px 10px;background:#fffdf9eb;backdrop-filter:blur(3px)}.map-paw.upper-left{top:168px;left:18px}.map-paw.upper-right{top:168px;right:18px}.map-paw.lower-left{bottom:34px;left:18px}.map-paw.lower-right{bottom:34px;right:18px}.edit-map{min-height:520px}
+@media(max-width:620px){.dog-map{min-height:500px}.dog-illustration{top:42px;height:440px;max-width:70%}.direction{font-size:11px;gap:5px}.map-paw{width:108px;min-height:78px;padding:6px 4px}.map-paw.upper-left{top:155px;left:5px}.map-paw.upper-right{top:155px;right:5px}.map-paw.lower-left{bottom:26px;left:5px}.map-paw.lower-right{bottom:26px;right:5px}.edit-map{min-height:490px}}
+

@@ -4,10 +4,10 @@ const STORE = 'yunaAuth';
 const STATE_URL = SUPABASE_URL + '/rest/v1/yuna_state?id=eq.family';
 
 const pawMeta = [
-  { key: 'frontLeft', label: 'Vorne links', side: 'Yunas linke Seite', position: 'front-left' },
-  { key: 'frontRight', label: 'Vorne rechts', side: 'Yunas rechte Seite', position: 'front-right' },
-  { key: 'hindLeft', label: 'Hinten links', side: 'Yunas linke Seite', position: 'hind-left' },
-  { key: 'hindRight', label: 'Hinten rechts', side: 'Yunas rechte Seite', position: 'hind-right' }
+  { key: 'frontLeft', label: 'Vorne links', side: 'Yunas linke Seite', position: 'lower-right' },
+  { key: 'frontRight', label: 'Vorne rechts', side: 'Yunas rechte Seite', position: 'lower-left' },
+  { key: 'hindLeft', label: 'Hinten links', side: 'Yunas linke Seite', position: 'upper-right' },
+  { key: 'hindRight', label: 'Hinten rechts', side: 'Yunas rechte Seite', position: 'upper-left' }
 ];
 
 // Private Angaben stehen ausschliesslich in Supabase und nicht im öffentlichen GitHub-Code.
@@ -160,8 +160,8 @@ function dogMap(target, interactive = false, selected = new Set()) {
   }).join('');
 
   return `<div class="dog-map${interactive ? ' edit-map' : ''}">
-    <div class="direction"><b>Yunas Kopf</b><span>↑ Blickrichtung</span></div>
-    <div class="dog-shape" aria-hidden="true"><span class="dog-head"><i></i><i></i></span><span class="dog-body"></span><span class="dog-tail"></span></div>
+    <div class="direction"><span>Schwanz ↑</span><b>Yuna von oben</b><span>↓ Kopf</span></div>
+    <img class="dog-illustration" src="yuna-top-view.png?v=4" alt="Schematische Aufsicht von Yuna mit vier sichtbaren Pfoten">
     ${paws}
   </div>`;
 }
@@ -182,7 +182,7 @@ function render() {
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`) +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), data.milk ? `Milcheinschuss: ${fmt(data.milk)}` : 'Noch kein Milcheinschuss eingetragen');
 
-  $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Die Zeichnung zeigt Yuna von oben. Der Kopf ist oben – so ist die Seite sofort sichtbar.</p></div>${dogMap(data)}`;
+  $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Yuna ist wie auf deinem Foto von oben dargestellt: Schwanz oben, Kopf unten. Tippe die Pfote direkt an ihrer Position an.</p></div>${dogMap(data)}`;
   const entries = sortedLog(data);
   $('#pawHistory').innerHTML = entries.length ? entries.map(entry => logRow(entry)).join('') : '<p class="empty-log">Noch keine Krallenpflege eingetragen.</p>';
   $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder) + reminder('Zeckenschutz Frühling', data.tickSpring) + reminder('Zeckenschutz Spätsommer', data.tickAutumn);
@@ -217,7 +217,7 @@ function openEditor(preselected = []) {
   editorDraft = structuredClone(data);
   selectedPaws = new Set(preselected);
   const pawSection = `<section class="paw-edit-panel">
-    <div><h3>Krallenpflege eintragen</h3><p>Yuna ist von oben dargestellt. Du kannst auch mehrere Pfoten für dasselbe Datum auswählen.</p></div>
+    <div><h3>Krallenpflege eintragen</h3><p>Schwanz oben, Kopf unten. Du kannst auch mehrere Pfoten für dasselbe Datum auswählen.</p></div>
     <div id="pawPicker"></div><p id="pawSelection" class="selection-note"></p>
     <div class="paw-entry-fields"><label>Datum<input id="pawDate" type="date" value="${today()}"></label><label>Pflege<select id="pawAction"><option>Geschliffen</option><option>Geschnitten</option></select></label><button id="addPawLog" type="button" class="primary">Eintrag hinzufügen</button></div>
     <h3 class="editor-log-title">Bisheriger Verlauf</h3><div id="editorPawLog" class="editor-log"></div>
