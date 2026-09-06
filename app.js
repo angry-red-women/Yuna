@@ -24,6 +24,7 @@ let data = structuredClone(initial);
 let lastCloud = '';
 let editorDraft = null;
 let selectedPaws = new Set();
+let openPawHistory = null;
 
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -153,8 +154,8 @@ function dogMap(target, interactive = false, selected = new Set()) {
     const chosen = selected.has(paw.key);
     const attribute = interactive
       ? `data-pick-paw="${paw.key}" aria-pressed="${chosen}"`
-      : `data-main-paw="${paw.key}"`;
-    return `<button type="button" class="map-paw ${paw.position}${chosen ? ' selected' : ''}" ${attribute} aria-label="${paw.label}: ${interactive ? 'auswählen' : 'Krallenpflege eintragen'}">
+      : `data-main-paw="${paw.key}" aria-expanded="${chosen}" aria-controls="pawHistoryDropdown"`;
+    return `<button type="button" class="map-paw ${paw.position}${chosen ? ' selected' : ''}" ${attribute} aria-label="${paw.label}: ${interactive ? 'auswählen' : 'Verlauf anzeigen'}">
       <span class="paw-print">🐾</span><b>${paw.label}</b><small>${interactive ? paw.side : fmt(latestForPaw(target, paw.key))}</small>
     </button>`;
   }).join('');
@@ -175,6 +176,19 @@ function logRow(entry, removable = false) {
   return `<div class="log-row"><div><b>${fmt(entry.date)} · ${esc(entry.action || 'Geschliffen')}</b><span>${esc(labels)}</span></div>${removable ? `<button type="button" class="remove-log" data-remove-log="${esc(entry.id)}" aria-label="Eintrag vom ${fmt(entry.date)} löschen">×</button>` : ''}</div>`;
 }
 
+function pawHistoryDropdown(key) {
+  if (!key) return '';
+  const paw = pawMeta.find(item => item.key === key);
+  const entries = sortedLog(data).filter(entry => entry.paws.includes(key));
+  const rows = entries.length
+    ? entries.map(entry => `<li><time datetime="${esc(entry.date)}">${fmt(entry.date)}</time><span>${esc(entry.action || 'Geschliffen')}</span></li>`).join('')
+    : '<li class="empty-log">Für diese Pfote gibt es noch keinen Eintrag.</li>';
+  return `<section id="pawHistoryDropdown" class="paw-dropdown" aria-live="polite">
+    <div class="paw-dropdown-head"><div><span>Historie</span><h3>${esc(paw.label)}</h3></div><button type="button" class="primary small-button" data-add-for-paw="${paw.key}">+ Neuer Termin</button></div>
+    <ol>${rows}</ol>
+  </section>`;
+}
+
 function render() {
   $('#health').innerHTML =
     info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Nächste Erinnerung: ${fmt(data.tickSpring)}`) +
@@ -182,9 +196,8 @@ function render() {
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`) +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), data.milk ? `Milcheinschuss: ${fmt(data.milk)}` : 'Noch kein Milcheinschuss eingetragen');
 
-  $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Yuna ist wie auf deinem Foto von oben dargestellt: Schwanz oben, Kopf unten. Tippe die Pfote direkt an ihrer Position an.</p></div>${dogMap(data)}`;
-  const entries = sortedLog(data);
-  $('#pawHistory').innerHTML = entries.length ? entries.map(entry => logRow(entry)).join('') : '<p class="empty-log">Noch keine Krallenpflege eingetragen.</p>';
+  const openSelection = openPawHistory ? new Set([openPawHistory]) : new Set();
+  $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
   $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder) + reminder('Zeckenschutz Frühling', data.tickSpring) + reminder('Zeckenschutz Spätsommer', data.tickAutumn);
   $('#food').innerHTML = `<h3>🦴 Futter</h3><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong></div><p>Jeweils ${esc(data.foodTimes || 'noch offen')}</p>`;
   $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><a href="tel:${esc(data.vetPhone)}"><button class="outline">Jetzt anrufen</button></a>`;
@@ -232,8 +245,16 @@ function openEditor(preselected = []) {
 }
 
 $('#paws').onclick = event => {
+  const addButton = event.target.closest('[data-add-for-paw]');
+  if (addButton) {
+    openEditor([addButton.dataset.addForPaw]);
+    return;
+  }
   const button = event.target.closest('[data-main-paw]');
-  if (button) openEditor([button.dataset.mainPaw]);
+  if (button) {
+    openPawHistory = openPawHistory === button.dataset.mainPaw ? null : button.dataset.mainPaw;
+    render();
+  }
 };
 
 $('#fields').onclick = event => {
