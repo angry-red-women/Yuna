@@ -41,7 +41,7 @@ const travelSources = {
 const initial = {
   paws: { 'Vorne links': '', 'Vorne rechts': '', 'Hinten links': '', 'Hinten rechts': '' },
   pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '', tick: '', tickName: '',
-  tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', barfAmount: '',
+  tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', wormingIntervalMonths: 3, barfAmount: '',
   travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '',
   emergencyVetName: '', emergencyVetAddress: '', emergencyVetPhone: '', reminder: '', notes: ''
 };
@@ -71,6 +71,9 @@ const addMonths = (date, months) => {
 };
 const dueState = date => !date ? 'unknown' : date <= today() ? 'due' : 'ok';
 const statusText = state => state === 'ok' ? 'Aktuell in Ordnung' : state === 'due' ? 'Fällig – bitte prüfen' : 'Fälligkeit noch offen';
+const telHref = value => `tel:${String(value || '').replace(/[^+\d]/g, '')}`;
+const mapEmbedHref = address => `https://www.google.com/maps?q=${encodeURIComponent(address || '')}&output=embed`;
+const mapRouteHref = (name, address) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${name || ''}, ${address || ''}`)}&travelmode=driving`;
 const headers = () => ({
   apikey: SUPABASE_KEY,
   Authorization: 'Bearer ' + session.access_token,
@@ -204,7 +207,6 @@ function dogMap(target, interactive = false, selected = new Set()) {
   }).join('');
 
   return `<div class="dog-map${interactive ? ' edit-map' : ''}">
-    <div class="direction"><span>Schwanz ↑</span><b>Yuna von oben</b><span>↓ Kopf</span></div>
     <img class="dog-illustration" src="yuna-top-view.png?v=4" alt="Schematische Aufsicht von Yuna mit vier sichtbaren Pfoten">
     ${paws}
   </div>`;
@@ -284,7 +286,7 @@ function render() {
   $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder) + reminder('Zeckenschutz Frühling', data.tickSpring) + reminder('Zeckenschutz Spätsommer', data.tickAutumn);
   renderTravel();
   $('#food').innerHTML = `<h3>🦴 Futter</h3><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
-  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><span class="pill">Tierärztin</span><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><a href="tel:${esc(data.vetPhone)}"><button class="outline">Tierärztin anrufen</button></a></div><div class="vet-block"><span class="pill">24-h-Notfall</span><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><a href="tel:${esc(data.emergencyVetPhone)}"><button class="outline">Notfallklinik anrufen</button></a></div>`;
+  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><span class="pill">Tierärztin</span><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><span class="pill">24-h-Notfall</span><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
   $('#holiday').innerHTML = `<h3>Wichtig in den Ferien</h3><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
 }
 
@@ -293,7 +295,7 @@ const fields = [
   ['vaccine', 'Letzte Impfung', 'date'], ['vaccineNext', 'Nächste Impfung', 'date'], ['vaccineName', 'Impfung / Präparat'],
   ['tick', 'Letzter Zeckenschutz', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
-  ['worming', 'Letzte Entwurmung', 'date'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
+  ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'],
   ['travelFoodAmount', 'Nassfutter auf Reisen pro Mahlzeit'], ['foodTimes', 'Futterzeiten'],
   ['vetName', 'Tierärztin'], ['vetPhone', 'Telefon Tierärztin'], ['vetAddress', 'Adresse Tierärztin'],
@@ -385,6 +387,20 @@ $('#fields').onclick = event => {
     renderEditorLog();
     renderPawPicker();
   }
+};
+
+$('#fields').onchange = event => {
+  if (!['worming', 'wormingIntervalMonths'].includes(event.target.dataset.key)) return;
+  const lastInput = document.querySelector('[data-key="worming"]');
+  const intervalInput = document.querySelector('[data-key="wormingIntervalMonths"]');
+  const nextInput = document.querySelector('[data-key="wormingNext"]');
+  const interval = Math.max(1, Number(intervalInput.value) || 3);
+  const next = addMonths(lastInput.value, interval);
+  intervalInput.value = String(interval);
+  nextInput.value = next;
+  editorDraft.worming = lastInput.value;
+  editorDraft.wormingIntervalMonths = interval;
+  editorDraft.wormingNext = next;
 };
 
 $('#editForm').onsubmit = async event => {
