@@ -10,12 +10,40 @@ const pawMeta = [
   { key: 'hindRight', label: 'Hinten rechts', side: 'Yunas rechte Seite', position: 'upper-left' }
 ];
 
+const euTravelCountries = new Set([
+  'Belgien', 'Bulgarien', 'Dänemark', 'Deutschland', 'Estland', 'Finnland', 'Frankreich',
+  'Griechenland', 'Irland', 'Italien', 'Kroatien', 'Lettland', 'Litauen', 'Luxemburg',
+  'Malta', 'Niederlande', 'Österreich', 'Polen', 'Portugal', 'Rumänien', 'Schweden',
+  'Slowakei', 'Slowenien', 'Spanien', 'Tschechien', 'Ungarn', 'Zypern'
+]);
+const passportTravelCountries = new Set(['Andorra', 'Liechtenstein', 'Monaco', 'San Marino', 'Vatikanstadt']);
+const tapewormCountries = new Set(['Finnland', 'Irland', 'Malta', 'Norwegen', 'Nordirland']);
+const europeanCountries = [
+  'Albanien', 'Andorra', 'Armenien', 'Aserbaidschan', 'Belarus', 'Belgien',
+  'Bosnien und Herzegowina', 'Bulgarien', 'Dänemark', 'Deutschland', 'Estland',
+  'Färöer', 'Finnland', 'Frankreich', 'Georgien', 'Griechenland', 'Grönland',
+  'Irland', 'Island', 'Italien', 'Kosovo', 'Kroatien', 'Lettland', 'Liechtenstein',
+  'Litauen', 'Luxemburg', 'Malta', 'Moldau', 'Monaco', 'Montenegro', 'Niederlande',
+  'Nordirland', 'Nordmazedonien', 'Norwegen', 'Österreich', 'Polen', 'Portugal',
+  'Rumänien', 'Russland', 'San Marino', 'Schweden', 'Serbien', 'Slowakei',
+  'Slowenien', 'Spanien', 'Tschechien', 'Türkei', 'Ukraine', 'Ungarn',
+  'Vatikanstadt', 'Vereinigtes Königreich (Grossbritannien)', 'Zypern'
+];
+const travelSources = {
+  eu: 'https://europa.eu/youreurope/citizens/travel/carry/pets-and-other-animals/index_de.htm',
+  blv: 'https://www.blv.admin.ch/de/reisen-heimtiere-hunde-katzen-frettchen',
+  check: 'https://kwk.blv.admin.ch/kwk/de/home',
+  uk: 'https://www.gov.uk/bring-your-pet-to-great-britain',
+  iceland: 'https://www.mast.is/en/import-export/import-of-live-animals'
+};
+
 // Private Angaben stehen ausschliesslich in Supabase und nicht im öffentlichen GitHub-Code.
 const initial = {
   paws: { 'Vorne links': '', 'Vorne rechts': '', 'Hinten links': '', 'Hinten rechts': '' },
-  pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineName: '', tick: '', tickName: '',
+  pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '', tick: '', tickName: '',
   tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', barfAmount: '',
-  travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '', reminder: '', notes: ''
+  travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '',
+  emergencyVetName: '', emergencyVetAddress: '', emergencyVetPhone: '', reminder: '', notes: ''
 };
 
 let session = null;
@@ -25,6 +53,7 @@ let lastCloud = '';
 let editorDraft = null;
 let selectedPaws = new Set();
 let openPawHistory = null;
+let selectedTravelCountry = '';
 
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -34,6 +63,14 @@ const fmt = date => date
   ? new Intl.DateTimeFormat('de-CH', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(date + 'T12:00:00'))
   : 'Noch offen';
 const today = () => new Date().toLocaleDateString('sv-SE');
+const addMonths = (date, months) => {
+  if (!date) return '';
+  const value = new Date(date + 'T12:00:00');
+  value.setMonth(value.getMonth() + months);
+  return value.toLocaleDateString('sv-SE');
+};
+const dueState = date => !date ? 'unknown' : date <= today() ? 'due' : 'ok';
+const statusText = state => state === 'ok' ? 'Aktuell in Ordnung' : state === 'due' ? 'Fällig – bitte prüfen' : 'Fälligkeit noch offen';
 const headers = () => ({
   apikey: SUPABASE_KEY,
   Authorization: 'Bearer ' + session.access_token,
@@ -136,12 +173,18 @@ async function save() {
   setTimeout(() => $('#status').classList.add('hidden'), 2200);
 }
 
-function info(icon, title, main, sub) {
-  return `<article class="info"><div class="icon">${icon}</div><h3>${title}</h3><p>${esc(sub)}</p><strong>${esc(main)}</strong></article>`;
+function info(icon, title, main, sub, dueDate = '') {
+  const state = dueState(dueDate);
+  return `<article class="info status-${state}"><div class="icon">${icon}</div><h3>${title}</h3><p>${esc(sub)}</p><strong>${esc(main)}</strong><span class="status-label">${statusText(state)}</span></article>`;
 }
 
 function reminder(title, date) {
-  return `<div class="reminder"><b>📅 ${title}</b><span>${fmt(date)}</span></div>`;
+  const state = dueState(date);
+  return `<div class="reminder status-${state}"><b>📅 ${title}</b><span>${fmt(date)}</span><span class="status-label">${statusText(state)}</span></div>`;
+}
+
+function singlePawIcon() {
+  return '<svg viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="41" rx="18" ry="15"/><ellipse cx="13" cy="25" rx="7" ry="10" transform="rotate(-24 13 25)"/><ellipse cx="26" cy="14" rx="7" ry="10"/><ellipse cx="40" cy="14" rx="7" ry="10"/><ellipse cx="52" cy="25" rx="7" ry="10" transform="rotate(24 52 25)"/></svg>';
 }
 
 function latestForPaw(target, key) {
@@ -156,7 +199,7 @@ function dogMap(target, interactive = false, selected = new Set()) {
       ? `data-pick-paw="${paw.key}" aria-pressed="${chosen}"`
       : `data-main-paw="${paw.key}" aria-expanded="${chosen}" aria-controls="pawHistoryDropdown"`;
     return `<button type="button" class="map-paw ${paw.position}${chosen ? ' selected' : ''}" ${attribute} aria-label="${paw.label}: ${interactive ? 'auswählen' : 'Verlauf anzeigen'}">
-      <span class="paw-print">🐾</span><b>${paw.label}</b><small>${interactive ? paw.side : fmt(latestForPaw(target, paw.key))}</small>
+      <span class="paw-print">${singlePawIcon()}</span><b>${paw.label}</b><small>${interactive ? paw.side : fmt(latestForPaw(target, paw.key))}</small>
     </button>`;
   }).join('');
 
@@ -189,30 +232,72 @@ function pawHistoryDropdown(key) {
   </section>`;
 }
 
+function travelRules(country) {
+  const base = [
+    ['Mikrochip', 'Der Chip muss vor der gültigen Tollwutimpfung gesetzt worden sein.'],
+    ['Tollwutimpfung', 'Muss am Reisetag gültig sein. Nach einer Erstimpfung gelten mindestens 21 Tage Wartezeit.'],
+    ['Heimtierpass', 'Original des gültigen Schweizer Heimtierpasses mitführen.'],
+    ['Private Reise', 'Yuna reist mit euch oder einer bevollmächtigten Person; höchstens fünf Heimtiere.']
+  ];
+  if (country === 'Island') return {
+    status: 'Quarantäne und Importbewilligung erforderlich', tone: 'danger', source: travelSources.iceland,
+    items: [...base, ['Einfuhrbewilligung', 'Vor der Reise bei der isländischen Veterinärbehörde MAST beantragen.'], ['Gesundheitstests', 'Zusätzliche Impfungen, Untersuchungen und Fristen nach MAST-Vorgaben einplanen.'], ['Quarantäne', 'Nach aktueller Behördeninformation sind zwei Wochen Quarantäne nach Ankunft vorgeschrieben.']]
+  };
+  if (country === 'Vereinigtes Königreich (Grossbritannien)') return {
+    status: 'Keine Quarantäne bei vollständig erfüllten Bedingungen', tone: 'special', source: travelSources.uk,
+    items: [...base, ['Bandwurmbehandlung', 'Tierärztlich 24–120 Stunden vor Einreise; Präparat, Datum, Uhrzeit, Stempel und Unterschrift im Pass.'], ['Reiseroute', 'Nur zugelassene Transportfirma und zugelassene Einreiseroute verwenden.']]
+  };
+  if (euTravelCountries.has(country) || passportTravelCountries.has(country) || country === 'Norwegen' || country === 'Nordirland') {
+    const items = [...base];
+    if (tapewormCountries.has(country)) items.push(['Bandwurmbehandlung', 'Tierärztlich 24–120 Stunden vor Einreise gegen Echinococcus multilocularis; vollständig im Pass dokumentieren.']);
+    return {status: 'Keine planmässige Quarantäne bei gültigen Unterlagen', tone: tapewormCountries.has(country) ? 'special' : 'ok', source: travelSources.eu, items};
+  }
+  return {
+    status: 'Sonderregeln vor jeder Reise amtlich prüfen', tone: 'warning', source: travelSources.check,
+    items: [...base, ['Gesundheitszeugnis / Bewilligung', 'Kann je nach Zielland, Route und Aufenthaltsdauer verlangt werden.'], ['Rückreise in die Schweiz', 'Bei Tollwut-Risikoländern können Antikörpertest, längere Fristen und eine Einreisekontrolle nötig sein. Reise-Check vor der Buchung durchführen.']]
+  };
+}
+
+function renderTravel() {
+  const options = europeanCountries.map(country => `<option${country === selectedTravelCountry ? ' selected' : ''}>${esc(country)}</option>`).join('');
+  if (!selectedTravelCountry) {
+    $('#travel').innerHTML = `<div class="travel-intro"><div><span class="travel-icon">🧳</span><h3>Einreise-Check ab der Schweiz</h3><p>Zielland wählen und Yunas erforderliche Unterlagen sowie Sonderregeln anzeigen.</p></div><label>Zielland<select id="travelCountry"><option value="">Land auswählen …</option>${options}</select></label></div><p class="travel-note">Die Angaben gelten für eine private Ferienreise mit Rückkehr in die Schweiz. Letzte amtliche Prüfung: 7. September 2026.</p>`;
+    return;
+  }
+  const rules = travelRules(selectedTravelCountry);
+  const items = rules.items.map(([title, text]) => `<li><span>✓</span><div><b>${esc(title)}</b><p>${esc(text)}</p></div></li>`).join('');
+  $('#travel').innerHTML = `<div class="travel-intro"><div><span class="travel-icon">🧳</span><h3>Einreise nach ${esc(selectedTravelCountry)}</h3><p>Abreise und Rückreise: Schweiz</p></div><label>Zielland<select id="travelCountry"><option value="">Land auswählen …</option>${options}</select></label></div><div class="travel-status ${rules.tone}">${esc(rules.status)}</div><ul class="travel-list">${items}</ul><div class="travel-links"><a href="${rules.source}" target="_blank" rel="noopener">Amtliche Regeln des Ziellands ↗</a><a href="${travelSources.blv}" target="_blank" rel="noopener">Rückreise in die Schweiz prüfen ↗</a></div><p class="travel-note">Kurz vor jeder Buchung nochmals die amtliche Quelle öffnen. Fehlende Unterlagen können zur Zurückweisung oder Quarantäne führen. Letzte amtliche Prüfung: 7. September 2026.</p>`;
+}
+
 function render() {
+  const tickDue = addMonths(data.tick, 1);
+  const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
+  const heatDue = addMonths(data.heat, 6);
   $('#health').innerHTML =
-    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Nächste Erinnerung: ${fmt(data.tickSpring)}`) +
-    info('💉', 'Impfung', data.vaccineName || 'Noch offen', `Zuletzt: ${fmt(data.vaccine)}`) +
-    info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`) +
-    info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), data.milk ? `Milcheinschuss: ${fmt(data.milk)}` : 'Noch kein Milcheinschuss eingetragen');
+    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Wirkung ungefähr bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue) +
+    info('💉', 'Impfung', data.vaccineName || 'Noch offen', `Zuletzt: ${fmt(data.vaccine)} · Nächste: ${fmt(vaccineDue)}`, vaccineDue) +
+    info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext) +
+    info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue);
 
   const openSelection = openPawHistory ? new Set([openPawHistory]) : new Set();
   $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
   $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder) + reminder('Zeckenschutz Frühling', data.tickSpring) + reminder('Zeckenschutz Spätsommer', data.tickAutumn);
-  $('#food').innerHTML = `<h3>🦴 Futter</h3><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong></div><p>Jeweils ${esc(data.foodTimes || 'noch offen')}</p>`;
-  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><a href="tel:${esc(data.vetPhone)}"><button class="outline">Jetzt anrufen</button></a>`;
+  renderTravel();
+  $('#food').innerHTML = `<h3>🦴 Futter</h3><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
+  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><span class="pill">Tierärztin</span><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><a href="tel:${esc(data.vetPhone)}"><button class="outline">Tierärztin anrufen</button></a></div><div class="vet-block"><span class="pill">24-h-Notfall</span><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><a href="tel:${esc(data.emergencyVetPhone)}"><button class="outline">Notfallklinik anrufen</button></a></div>`;
   $('#holiday').innerHTML = `<h3>Wichtig in den Ferien</h3><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
 }
 
 const fields = [
   ['heat', 'Letzte Läufigkeit', 'date'], ['milk', 'Milcheinschuss', 'date'],
-  ['vaccine', 'Letzte Impfung', 'date'], ['vaccineName', 'Impfung / Präparat'],
+  ['vaccine', 'Letzte Impfung', 'date'], ['vaccineNext', 'Nächste Impfung', 'date'], ['vaccineName', 'Impfung / Präparat'],
   ['tick', 'Letzter Zeckenschutz', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'],
   ['travelFoodAmount', 'Nassfutter auf Reisen pro Mahlzeit'], ['foodTimes', 'Futterzeiten'],
-  ['vetName', 'Tierarzt'], ['vetPhone', 'Telefon'], ['vetAddress', 'Adresse'], ['notes', 'Ferienhinweise', 'textarea']
+  ['vetName', 'Tierärztin'], ['vetPhone', 'Telefon Tierärztin'], ['vetAddress', 'Adresse Tierärztin'],
+  ['emergencyVetName', 'Notfallklinik'], ['emergencyVetPhone', 'Telefon Notfallklinik'], ['emergencyVetAddress', 'Adresse Notfallklinik'], ['notes', 'Ferienhinweise', 'textarea']
 ];
 
 function renderPawPicker() {
@@ -255,6 +340,12 @@ $('#paws').onclick = event => {
     openPawHistory = openPawHistory === button.dataset.mainPaw ? null : button.dataset.mainPaw;
     render();
   }
+};
+
+$('#travel').onchange = event => {
+  if (event.target.id !== 'travelCountry') return;
+  selectedTravelCountry = event.target.value;
+  renderTravel();
 };
 
 $('#fields').onclick = event => {
