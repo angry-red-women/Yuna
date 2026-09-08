@@ -198,6 +198,7 @@ async function loadPermissions() {
     if (response.ok) canEdit = (await response.json()).length > 0;
   }
   $('#editBtn').classList.toggle('hidden', !canEdit);
+  render();
 }
 
 async function save() {
