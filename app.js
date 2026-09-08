@@ -43,10 +43,13 @@ const travelSources = {
 const initial = {
   paws: { 'Vorne links': '', 'Vorne rechts': '', 'Hinten links': '', 'Hinten rechts': '' },
     pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '',
-  rabiesVaccine: '', rabiesVaccineNext: '', rabiesVaccineName: '', tick: '', tickName: '',
+  rabiesVaccine: '', rabiesVaccineValidFrom: '', rabiesVaccineNext: '', rabiesVaccineName: '', tick: '', tickName: '',
   tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', wormingIntervalMonths: 3, barfAmount: '',
   travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '',
-  emergencyVetName: '', emergencyVetAddress: '', emergencyVetPhone: '', reminder: '', notes: ''
+  emergencyVetName: '', emergencyVetAddress: '', emergencyVetPhone: '', reminder: '', notes: '',
+  passportNumber: '', officialName: '', species: '', breed: '', sex: '', birthDate: '', color: '',
+  chipNumber: '', chipDate: '', chipLocation: '', passportAmicusPhone: '', passportAmicusEmail: '', passportAmicusSite: '',
+  passportIssuer: '', passportIssuerClinic: '', passportIssuerAddress: '', passportIssuerPhone: '', passportIssuerEmail: '', passportIssueDate: ''
 };
 
 let session = null;
@@ -332,7 +335,7 @@ function render() {
   $('#health').innerHTML =
         info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
         info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
-    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Erneuern: ${fmt(rabiesVaccineDue)}`, rabiesStatusDate, 'rabiesVaccine') +
+    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Gültig ab: ${fmt(data.rabiesVaccineValidFrom)} · Gültig bis: ${fmt(rabiesVaccineDue)}`, rabiesStatusDate, 'rabiesVaccine') +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
 
@@ -342,26 +345,31 @@ function render() {
   renderTravel();
   $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
   $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><div class="card-head"><span class="pill">Tierärztin</span>${editButton('vet')}</div><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><div class="card-head"><span class="pill">24-h-Notfall</span>${editButton('emergencyVet')}</div><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
+  $('#passport').innerHTML = `<div class="card-head"><h3>📘 Hundepass</h3>${editButton('passport')}</div><div class="passport-grid"><dl><dt>Passnummer</dt><dd class="passport-number">${esc(data.passportNumber || 'Noch offen')}</dd><dt>Offizieller Name</dt><dd>${esc(data.officialName || 'Noch offen')}</dd><dt>Geburtsdatum</dt><dd>${fmt(data.birthDate)}</dd></dl><dl><dt>Tier</dt><dd>${esc([data.species, data.breed, data.sex, data.color].filter(Boolean).join(' · ') || 'Noch offen')}</dd><dt>Mikrochip</dt><dd class="passport-number">${esc(data.chipNumber || 'Noch offen')}</dd><dt>Chip eingesetzt</dt><dd>${fmt(data.chipDate)}${data.chipLocation ? ` · ${esc(data.chipLocation)}` : ''}</dd></dl><dl class="passport-full"><dt>Amicus-Registrierung</dt><dd>${esc(data.passportAmicusPhone || 'Noch offen')} · ${esc(data.passportAmicusEmail || '')}<br>${esc(data.passportAmicusSite || '')}</dd></dl><dl class="passport-full"><dt>Ausgestellt von</dt><dd><b>${esc(data.passportIssuer || 'Noch offen')}</b><br>${esc(data.passportIssuerClinic || '')}<br>${esc(data.passportIssuerAddress || '')}<br>${esc(data.passportIssuerPhone || '')}${data.passportIssuerEmail ? ` · ${esc(data.passportIssuerEmail)}` : ''}<br>Ausgestellt am: ${fmt(data.passportIssueDate)}</dd></dl></div>`;
   $('#holiday').innerHTML = `<div class="card-head"><h3>Wichtig in den Ferien</h3>${editButton('holiday')}</div><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
 }
 
 const fields = [
   ['heat', 'Letzte Läufigkeit', 'date'], ['milk', 'Milcheinschuss', 'date'],
     ['vaccine', 'Kombiimpfung gemacht am', 'date'], ['vaccineNext', 'Kombiimpfung erneuern am', 'date'], ['vaccineName', 'Kombiimpfung / Präparat'],
-  ['rabiesVaccine', 'Tollwutimpfung gemacht am', 'date'], ['rabiesVaccineNext', 'Tollwutimpfung erneuern am', 'date'], ['rabiesVaccineName', 'Tollwutimpfung / Präparat'],
+  ['rabiesVaccine', 'Tollwutimpfung gemacht am', 'date'], ['rabiesVaccineValidFrom', 'Tollwutimpfung gültig ab', 'date'], ['rabiesVaccineNext', 'Tollwutimpfung gültig bis', 'date'], ['rabiesVaccineName', 'Tollwutimpfung / Präparat'],
     ['tick', 'Zeckenschutz verabreicht am', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'],
   ['travelFoodAmount', 'Nassfutter auf Reisen pro Mahlzeit'], ['foodTimes', 'Futterzeiten'],
   ['vetName', 'Tierärztin'], ['vetPhone', 'Telefon Tierärztin'], ['vetAddress', 'Adresse Tierärztin'],
-  ['emergencyVetName', 'Notfallklinik'], ['emergencyVetPhone', 'Telefon Notfallklinik'], ['emergencyVetAddress', 'Adresse Notfallklinik'], ['notes', 'Ferienhinweise', 'textarea']
+  ['emergencyVetName', 'Notfallklinik'], ['emergencyVetPhone', 'Telefon Notfallklinik'], ['emergencyVetAddress', 'Adresse Notfallklinik'], ['notes', 'Ferienhinweise', 'textarea'],
+  ['passportNumber', 'Passnummer'], ['officialName', 'Offizieller Name'], ['species', 'Tierart'], ['breed', 'Rasse'], ['sex', 'Geschlecht'], ['birthDate', 'Geburtsdatum', 'date'], ['color', 'Farbe'],
+  ['chipNumber', 'Mikrochip-Nummer'], ['chipDate', 'Chip eingesetzt am', 'date'], ['chipLocation', 'Position des Chips'],
+  ['passportAmicusPhone', 'Amicus Telefon'], ['passportAmicusEmail', 'Amicus E-Mail'], ['passportAmicusSite', 'Amicus Webseite'],
+  ['passportIssuer', 'Pass ausgestellt von'], ['passportIssuerClinic', 'Ausstellende Praxis'], ['passportIssuerAddress', 'Adresse der Praxis'], ['passportIssuerPhone', 'Telefon der Praxis'], ['passportIssuerEmail', 'E-Mail der Praxis'], ['passportIssueDate', 'Pass ausgestellt am', 'date']
 ];
 
 const fieldGroups = {
       tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
     vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
-    rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineNext', 'rabiesVaccineName'] },
+    rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
   heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
   reminder: { title: 'Tierarzt-Erinnerung ändern', keys: ['reminder'] },
@@ -370,6 +378,7 @@ const fieldGroups = {
   food: { title: 'Futter ändern', keys: ['barfAmount', 'travelFoodAmount', 'foodTimes'] },
   vet: { title: 'Tierärztin ändern', keys: ['vetName', 'vetPhone', 'vetAddress'] },
   emergencyVet: { title: 'Notfallklinik ändern', keys: ['emergencyVetName', 'emergencyVetPhone', 'emergencyVetAddress'] },
+  passport: { title: 'Hundepass ändern', keys: ['passportNumber', 'officialName', 'species', 'breed', 'sex', 'birthDate', 'color', 'chipNumber', 'chipDate', 'chipLocation', 'passportAmicusPhone', 'passportAmicusEmail', 'passportAmicusSite', 'passportIssuer', 'passportIssuerClinic', 'passportIssuerAddress', 'passportIssuerPhone', 'passportIssuerEmail', 'passportIssueDate'] },
   holiday: { title: 'Ferienhinweise ändern', keys: ['notes'] },
   paws: { title: 'Krallenpflege eintragen', keys: [] }
 };
