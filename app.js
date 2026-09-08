@@ -338,7 +338,7 @@ const fields = [
   ['heat', 'Letzte Läufigkeit', 'date'], ['milk', 'Milcheinschuss', 'date'],
     ['vaccine', 'Kombiimpfung gemacht am', 'date'], ['vaccineNext', 'Kombiimpfung erneuern am', 'date'], ['vaccineName', 'Kombiimpfung / Präparat'],
   ['rabiesVaccine', 'Tollwutimpfung gemacht am', 'date'], ['rabiesVaccineNext', 'Tollwutimpfung erneuern am', 'date'], ['rabiesVaccineName', 'Tollwutimpfung / Präparat'],
-  ['tick', 'Letzter Zeckenschutz', 'date'], ['tickName', 'Zeckenmittel'],
+    ['tick', 'Zeckenschutz verabreicht am', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'],
@@ -348,8 +348,8 @@ const fields = [
 ];
 
 const fieldGroups = {
+      tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
     vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
-  rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   vaccine: { title: 'Impfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
   heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
@@ -551,7 +551,7 @@ $('#passwordResetForm').onsubmit = async event => {
   }
   localStorage.removeItem(STORE);
   session = null;
-    history.replaceState(null, '', location.pathname + '?v=11');
+      history.replaceState(null, '', location.pathname + '?v=12');
   $('#passwordReset').classList.add('hidden');
   $('#login').classList.remove('hidden');
   $('#loginError').classList.add('success-message');
