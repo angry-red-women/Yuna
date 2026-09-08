@@ -314,12 +314,13 @@ function renderTravel() {
 }
 
 function render() {
-  const tickDue = addMonths(data.tick, 1);
+    const simparica = /simparica/i.test(data.tickName || '');
+  const tickDue = simparica ? (() => { const value = new Date(addMonths(data.tick, 4) + 'T12:00:00'); value.setDate(value.getDate() + 15); return data.tick ? value.toLocaleDateString('sv-SE') : ''; })() : addMonths(data.tick, 1);
     const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
   const rabiesVaccineDue = data.rabiesVaccineNext || '';
   const heatDue = addMonths(data.heat, 6);
   $('#health').innerHTML =
-    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Wirkung ungefähr bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
+        info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
         info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
     info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Erneuern: ${fmt(rabiesVaccineDue)}`, rabiesVaccineDue, 'rabiesVaccine') +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
@@ -350,7 +351,7 @@ const fields = [
 const fieldGroups = {
       tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
     vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
-  vaccine: { title: 'Impfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
+    rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
   heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
   reminder: { title: 'Tierarzt-Erinnerung ändern', keys: ['reminder'] },
@@ -564,7 +565,7 @@ $('#logoutBtn').onclick = () => {
   $('#app').classList.add('hidden');
   $('#login').classList.remove('hidden');
 };
-
+      history.replaceState(null, '', location.pathname + '?v=13');
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   installPrompt = event;
