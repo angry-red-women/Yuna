@@ -2,6 +2,7 @@ const SUPABASE_URL = 'https://uoqastprrdlwlsesheoz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_vCRrqr_Zi1Zg1jN-LOrV3Q_7I0LnzKu';
 const STORE = 'yunaAuth';
 const STATE_URL = SUPABASE_URL + '/rest/v1/yuna_state?id=eq.family';
+const EDITOR_URL = SUPABASE_URL + '/rest/v1/yuna_editors?select=user_id&user_id=eq.';
 
 const pawMeta = [
   { key: 'frontLeft', label: 'Vorne links', side: 'Yunas linke Seite', position: 'lower-right' },
@@ -47,6 +48,7 @@ const initial = {
 };
 
 let session = null;
+let canEdit = false;
 let installPrompt = null;
 let data = structuredClone(initial);
 let lastCloud = '';
@@ -163,7 +165,19 @@ async function load() {
   render();
 }
 
+async function loadPermissions() {
+  canEdit = false;
+  if (session?.user?.id) {
+    const response = await fetch(EDITOR_URL + encodeURIComponent(session.user.id), {
+      headers: headers(), cache: 'no-store'
+    });
+    if (response.ok) canEdit = (await response.json()).length > 0;
+  }
+  $('#editBtn').classList.toggle('hidden', !canEdit);
+}
+
 async function save() {
+  if (!canEdit) throw Error('Dieses Konto hat nur Leserechte.');
   const body = JSON.stringify({ data, updated_at: new Date().toISOString() });
   const response = await fetch(STATE_URL, {
     method: 'PATCH',
@@ -314,6 +328,7 @@ function renderEditorLog() {
 }
 
 function openEditor(preselected = []) {
+  if (!canEdit) return;
   editorDraft = structuredClone(data);
   selectedPaws = new Set(preselected);
   const pawSection = `<section class="paw-edit-panel">
@@ -412,7 +427,7 @@ $('#editForm').onsubmit = async event => {
   $('#editor').close();
 };
 
-$('#editBtn').onclick = () => openEditor();
+$('#editBtn').onclick = () => { if (canEdit) openEditor(); };
 $('#closeBtn').onclick = $('#cancelBtn').onclick = () => $('#editor').close();
 
 $('#loginForm').onsubmit = async event => {
@@ -422,6 +437,7 @@ $('#loginForm').onsubmit = async event => {
     await signIn($('#email').value.trim(), $('#password').value);
     $('#login').classList.add('hidden');
     $('#app').classList.remove('hidden');
+    await loadPermissions();
     await load();
   } catch (error) {
     $('#loginError').textContent = error.message === 'Invalid login credentials' ? 'E-Mail oder Passwort stimmt nicht.' : error.message;
@@ -456,6 +472,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   if (session && await refresh()) {
     $('#login').classList.add('hidden');
     $('#app').classList.remove('hidden');
+    await loadPermissions();
     await load();
   } else {
     localStorage.removeItem(STORE);
