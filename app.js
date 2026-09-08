@@ -3,6 +3,7 @@ const SUPABASE_KEY = 'sb_publishable_vCRrqr_Zi1Zg1jN-LOrV3Q_7I0LnzKu';
 const STORE = 'yunaAuth';
 const STATE_URL = SUPABASE_URL + '/rest/v1/yuna_state?id=eq.family';
 const EDITOR_URL = SUPABASE_URL + '/rest/v1/yuna_editors?select=user_id&user_id=eq.';
+const RESET_REDIRECT = location.origin + location.pathname + '?reset=1';
 
 const pawMeta = [
   { key: 'frontLeft', label: 'Vorne links', side: 'Yunas linke Seite', position: 'lower-right' },
@@ -134,6 +135,28 @@ async function signIn(email, password) {
   if (!response.ok) throw Error(result.error_description || result.msg || result.message || 'Anmeldung fehlgeschlagen');
   session = result;
   localStorage.setItem(STORE, JSON.stringify(result));
+}
+
+async function requestPasswordReset(email) {
+  const response = await fetch(SUPABASE_URL + '/auth/v1/recover?redirect_to=' + encodeURIComponent(RESET_REDIRECT), {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw Error(result.msg || result.message || 'Der Wiederherstellungslink konnte nicht gesendet werden.');
+  }
+}
+
+function recoverySession() {
+  const params = new URLSearchParams(location.hash.slice(1));
+  if (params.get('type') !== 'recovery' || !params.get('access_token')) return null;
+  return {
+    access_token: params.get('access_token'),
+    refresh_token: params.get('refresh_token') || '',
+    token_type: params.get('token_type') || 'bearer'
+  };
 }
 
 async function refresh() {
@@ -385,6 +408,16 @@ $('#paws').onclick = event => {
 };
 
 document.addEventListener('click', event => {
+  const passwordButton = event.target.closest('[data-password-target]');
+  if (passwordButton) {
+    const input = document.getElementById(passwordButton.dataset.passwordTarget);
+    const visible = input.type === 'text';
+    input.type = visible ? 'password' : 'text';
+    passwordButton.textContent = visible ? '👁' : '🙈';
+    passwordButton.setAttribute('aria-label', visible ? 'Passwort anzeigen' : 'Passwort verbergen');
+    passwordButton.setAttribute('aria-pressed', String(!visible));
+    return;
+  }
   const button = event.target.closest('[data-edit-section]');
   if (button && canEdit) openEditor([], button.dataset.editSection);
 });
@@ -474,6 +507,52 @@ $('#loginForm').onsubmit = async event => {
   }
 };
 
+$('#forgotBtn').onclick = async () => {
+  const email = $('#email').value.trim();
+  $('#loginError').textContent = '';
+  if (!email) {
+    $('#loginError').textContent = 'Bitte zuerst die E-Mail-Adresse eingeben.';
+    $('#email').focus();
+    return;
+  }
+  try {
+    await requestPasswordReset(email);
+    $('#loginError').textContent = 'E-Mail gesendet. Bitte den Link im Posteingang öffnen.';
+    $('#loginError').classList.add('success-message');
+  } catch (error) {
+    $('#loginError').classList.remove('success-message');
+    $('#loginError').textContent = error.message;
+  }
+};
+
+$('#passwordResetForm').onsubmit = async event => {
+  event.preventDefault();
+  const password = $('#newPassword').value;
+  const repeated = $('#newPasswordRepeat').value;
+  $('#passwordResetError').textContent = '';
+  if (password !== repeated) {
+    $('#passwordResetError').textContent = 'Die beiden Passwörter stimmen nicht überein.';
+    return;
+  }
+  const response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+    method: 'PUT',
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    $('#passwordResetError').textContent = result.msg || result.message || 'Das Passwort konnte nicht gespeichert werden.';
+    return;
+  }
+  localStorage.removeItem(STORE);
+  session = null;
+  history.replaceState(null, '', location.pathname + '?v=10');
+  $('#passwordReset').classList.add('hidden');
+  $('#login').classList.remove('hidden');
+  $('#loginError').classList.add('success-message');
+  $('#loginError').textContent = 'Passwort geändert. Sie können sich jetzt anmelden.';
+};
+
 $('#logoutBtn').onclick = () => {
   localStorage.removeItem(STORE);
   session = null;
@@ -498,6 +577,13 @@ $('#installBtn').onclick = async () => {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
 (async () => {
+  const recovery = recoverySession();
+  if (recovery) {
+    session = recovery;
+    $('#login').classList.add('hidden');
+    $('#passwordReset').classList.remove('hidden');
+    return;
+  }
   try { session = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch { /* leer */ }
   if (session && await refresh()) {
     $('#login').classList.add('hidden');
