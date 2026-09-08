@@ -4,3 +4,5 @@ html{background:#aaa39a}body{min-height:100vh;background:transparent;isolation:i
 .link-btn{display:block;margin:14px auto 0;border:0;background:transparent;color:var(--green);font-weight:800;text-decoration:underline;cursor:pointer}.success-message{color:var(--green)!important}
 .password-wrap{position:relative;display:block}.password-wrap input{padding-right:48px}.password-eye{position:absolute;right:5px;top:50%;width:39px;height:39px;transform:translateY(-50%);border:0;border-radius:9px;background:transparent;font-size:19px;cursor:pointer}.password-eye:hover,.password-eye:focus{background:#315f4a12;outline:none}
 
+
+.hero.needs-attention{background:linear-gradient(125deg,#8a493f,#b87868)}
