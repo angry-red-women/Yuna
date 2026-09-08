@@ -591,13 +591,19 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     return;
   }
   try { session = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch { /* leer */ }
-  if (session && await refresh()) {
-    $('#login').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-    await loadPermissions();
+  if (!session) return;
+
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  try {
     await load();
-  } else {
+    await loadPermissions();
+  } catch {
     localStorage.removeItem(STORE);
+    session = null;
+    $('#app').classList.add('hidden');
+    $('#login').classList.remove('hidden');
+    $('#loginError').textContent = 'Die Anmeldung ist abgelaufen. Bitte einmal neu anmelden.';
   }
 })();
 
