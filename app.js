@@ -42,7 +42,8 @@ const travelSources = {
 // Private Angaben stehen ausschliesslich in Supabase und nicht im öffentlichen GitHub-Code.
 const initial = {
   paws: { 'Vorne links': '', 'Vorne rechts': '', 'Hinten links': '', 'Hinten rechts': '' },
-  pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '', tick: '', tickName: '',
+    pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '',
+  rabiesVaccine: '', rabiesVaccineNext: '', rabiesVaccineName: '', tick: '', tickName: '',
   tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', wormingIntervalMonths: 3, barfAmount: '',
   travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '',
   emergencyVetName: '', emergencyVetAddress: '', emergencyVetPhone: '', reminder: '', notes: ''
@@ -314,11 +315,13 @@ function renderTravel() {
 
 function render() {
   const tickDue = addMonths(data.tick, 1);
-  const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
+    const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
+  const rabiesVaccineDue = data.rabiesVaccineNext || '';
   const heatDue = addMonths(data.heat, 6);
   $('#health').innerHTML =
     info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Wirkung ungefähr bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
-    info('💉', 'Impfung', data.vaccineName || 'Noch offen', `Zuletzt: ${fmt(data.vaccine)} · Nächste: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
+        info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
+    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Erneuern: ${fmt(rabiesVaccineDue)}`, rabiesVaccineDue, 'rabiesVaccine') +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
 
@@ -333,7 +336,8 @@ function render() {
 
 const fields = [
   ['heat', 'Letzte Läufigkeit', 'date'], ['milk', 'Milcheinschuss', 'date'],
-  ['vaccine', 'Letzte Impfung', 'date'], ['vaccineNext', 'Nächste Impfung', 'date'], ['vaccineName', 'Impfung / Präparat'],
+    ['vaccine', 'Kombiimpfung gemacht am', 'date'], ['vaccineNext', 'Kombiimpfung erneuern am', 'date'], ['vaccineName', 'Kombiimpfung / Präparat'],
+  ['rabiesVaccine', 'Tollwutimpfung gemacht am', 'date'], ['rabiesVaccineNext', 'Tollwutimpfung erneuern am', 'date'], ['rabiesVaccineName', 'Tollwutimpfung / Präparat'],
   ['tick', 'Letzter Zeckenschutz', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
@@ -344,7 +348,8 @@ const fields = [
 ];
 
 const fieldGroups = {
-  tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+    vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
+  rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   vaccine: { title: 'Impfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
   heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
@@ -546,7 +551,7 @@ $('#passwordResetForm').onsubmit = async event => {
   }
   localStorage.removeItem(STORE);
   session = null;
-  history.replaceState(null, '', location.pathname + '?v=10');
+    history.replaceState(null, '', location.pathname + '?v=11');
   $('#passwordReset').classList.add('hidden');
   $('#login').classList.remove('hidden');
   $('#loginError').classList.add('success-message');
