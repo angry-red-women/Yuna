@@ -319,11 +319,20 @@ function render() {
   const tickDue = simparica ? (() => { const value = new Date(addMonths(data.tick, 4) + 'T12:00:00'); value.setDate(value.getDate() + 15); return data.tick ? value.toLocaleDateString('sv-SE') : ''; })() : addMonths(data.tick, 1);
     const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
   const rabiesVaccineDue = data.rabiesVaccineNext || '';
+  const rabiesStatusDate = data.rabiesVaccine && rabiesVaccineDue ? rabiesVaccineDue : today();
   const heatDue = addMonths(data.heat, 6);
+  const healthNeedsAttention = [tickDue, vaccineDue, rabiesStatusDate, data.wormingNext, heatDue]
+    .some(date => dueState(date) !== 'ok');
+  const hero = $('.hero');
+  hero.classList.toggle('needs-attention', healthNeedsAttention);
+  hero.querySelector('h1').textContent = healthNeedsAttention ? 'Bei Yuna ist etwas zu prüfen.' : 'Alles gut bei Yuna.';
+  hero.querySelector('p').textContent = healthNeedsAttention
+    ? 'Mindestens eine Gesundheitsangabe fehlt oder ist fällig. Die rötliche Kachel zeigt, worum es geht.'
+    : 'Pflege, Gesundheit und Ferieninfos an einem Ort – damit alle wissen, was Yuna gerade braucht.';
   $('#health').innerHTML =
         info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
         info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
-    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Erneuern: ${fmt(rabiesVaccineDue)}`, rabiesVaccineDue, 'rabiesVaccine') +
+    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Erneuern: ${fmt(rabiesVaccineDue)}`, rabiesStatusDate, 'rabiesVaccine') +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
 
