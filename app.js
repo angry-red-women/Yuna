@@ -190,14 +190,18 @@ async function save() {
   setTimeout(() => $('#status').classList.add('hidden'), 2200);
 }
 
-function info(icon, title, main, sub, dueDate = '') {
+const editButton = (section, label = 'Ändern') => canEdit
+  ? `<button type="button" class="card-edit" data-edit-section="${section}">✎ ${label}</button>`
+  : '';
+
+function info(icon, title, main, sub, dueDate = '', section = '') {
   const state = dueState(dueDate);
-  return `<article class="info status-${state}"><div class="icon">${icon}</div><h3>${title}</h3><p>${esc(sub)}</p><strong>${esc(main)}</strong><span class="status-label">${statusText(state)}</span></article>`;
+  return `<article class="info status-${state}">${editButton(section)}<div class="icon">${icon}</div><h3>${title}</h3><p>${esc(sub)}</p><strong>${esc(main)}</strong><span class="status-label">${statusText(state)}</span></article>`;
 }
 
-function reminder(title, date) {
+function reminder(title, date, section) {
   const state = dueState(date);
-  return `<div class="reminder status-${state}"><b>📅 ${title}</b><span>${fmt(date)}</span><span class="status-label">${statusText(state)}</span></div>`;
+  return `<div class="reminder status-${state}">${editButton(section)}<b>📅 ${title}</b><span>${fmt(date)}</span><span class="status-label">${statusText(state)}</span></div>`;
 }
 
 function singlePawIcon() {
@@ -290,18 +294,18 @@ function render() {
   const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
   const heatDue = addMonths(data.heat, 6);
   $('#health').innerHTML =
-    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Wirkung ungefähr bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue) +
-    info('💉', 'Impfung', data.vaccineName || 'Noch offen', `Zuletzt: ${fmt(data.vaccine)} · Nächste: ${fmt(vaccineDue)}`, vaccineDue) +
-    info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext) +
-    info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue);
+    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Zuletzt: ${fmt(data.tick)} · Wirkung ungefähr bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
+    info('💉', 'Impfung', data.vaccineName || 'Noch offen', `Zuletzt: ${fmt(data.vaccine)} · Nächste: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
+    info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
+    info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
 
   const openSelection = openPawHistory ? new Set([openPawHistory]) : new Set();
-  $('#paws').innerHTML = `<div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
-  $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder) + reminder('Zeckenschutz Frühling', data.tickSpring) + reminder('Zeckenschutz Spätsommer', data.tickAutumn);
+  $('#paws').innerHTML = `<div class="card-head"><div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${editButton('paws', 'Pflege eintragen')}</div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
+  $('#reminders').innerHTML = reminder('Gemäss Tierarzt', data.reminder, 'reminder') + reminder('Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn');
   renderTravel();
-  $('#food').innerHTML = `<h3>🦴 Futter</h3><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
-  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><span class="pill">Tierärztin</span><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><span class="pill">24-h-Notfall</span><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
-  $('#holiday').innerHTML = `<h3>Wichtig in den Ferien</h3><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
+  $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
+  $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><div class="card-head"><span class="pill">Tierärztin</span>${editButton('vet')}</div><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><div class="card-head"><span class="pill">24-h-Notfall</span>${editButton('emergencyVet')}</div><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
+  $('#holiday').innerHTML = `<div class="card-head"><h3>Wichtig in den Ferien</h3>${editButton('holiday')}</div><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
 }
 
 const fields = [
@@ -316,6 +320,21 @@ const fields = [
   ['emergencyVetName', 'Notfallklinik'], ['emergencyVetPhone', 'Telefon Notfallklinik'], ['emergencyVetAddress', 'Adresse Notfallklinik'], ['notes', 'Ferienhinweise', 'textarea']
 ];
 
+const fieldGroups = {
+  tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+  vaccine: { title: 'Impfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
+  worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
+  heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
+  reminder: { title: 'Tierarzt-Erinnerung ändern', keys: ['reminder'] },
+  tickSpring: { title: 'Frühlings-Erinnerung ändern', keys: ['tickSpring'] },
+  tickAutumn: { title: 'Spätsommer-Erinnerung ändern', keys: ['tickAutumn'] },
+  food: { title: 'Futter ändern', keys: ['barfAmount', 'travelFoodAmount', 'foodTimes'] },
+  vet: { title: 'Tierärztin ändern', keys: ['vetName', 'vetPhone', 'vetAddress'] },
+  emergencyVet: { title: 'Notfallklinik ändern', keys: ['emergencyVetName', 'emergencyVetPhone', 'emergencyVetAddress'] },
+  holiday: { title: 'Ferienhinweise ändern', keys: ['notes'] },
+  paws: { title: 'Krallenpflege eintragen', keys: [] }
+};
+
 function renderPawPicker() {
   $('#pawPicker').innerHTML = dogMap(editorDraft, true, selectedPaws);
   const count = selectedPaws.size;
@@ -327,29 +346,35 @@ function renderEditorLog() {
   $('#editorPawLog').innerHTML = entries.length ? entries.map(entry => logRow(entry, true)).join('') : '<p class="empty-log">Noch keine Einträge.</p>';
 }
 
-function openEditor(preselected = []) {
+function openEditor(preselected = [], section = 'all') {
   if (!canEdit) return;
   editorDraft = structuredClone(data);
   selectedPaws = new Set(preselected);
-  const pawSection = `<section class="paw-edit-panel">
+  const group = fieldGroups[section];
+  const includePaws = section === 'all' || section === 'paws';
+  $('#editorTitle').textContent = group?.title || 'Yunas Angaben bearbeiten';
+  const pawSection = includePaws ? `<section class="paw-edit-panel">
     <div><h3>Krallenpflege eintragen</h3><p>Schwanz oben, Kopf unten. Du kannst auch mehrere Pfoten für dasselbe Datum auswählen.</p></div>
     <div id="pawPicker"></div><p id="pawSelection" class="selection-note"></p>
     <div class="paw-entry-fields"><label>Datum<input id="pawDate" type="date" value="${today()}"></label><label>Pflege<select id="pawAction"><option>Geschliffen</option><option>Geschnitten</option></select></label><button id="addPawLog" type="button" class="primary">Eintrag hinzufügen</button></div>
     <h3 class="editor-log-title">Bisheriger Verlauf</h3><div id="editorPawLog" class="editor-log"></div>
-  </section>`;
-  const otherFields = fields.map(([key, label, type = 'text']) => `<label>${label}${type === 'textarea'
+  </section>` : '';
+  const visibleFields = group ? fields.filter(([key]) => group.keys.includes(key)) : fields;
+  const otherFields = visibleFields.map(([key, label, type = 'text']) => `<label>${label}${type === 'textarea'
     ? `<textarea data-key="${key}">${esc(editorDraft[key] || '')}</textarea>`
     : `<input data-key="${key}" type="${type}" value="${esc(editorDraft[key] || '')}">`}</label>`).join('');
   $('#fields').innerHTML = pawSection + otherFields;
-  renderPawPicker();
-  renderEditorLog();
+  if (includePaws) {
+    renderPawPicker();
+    renderEditorLog();
+  }
   $('#editor').showModal();
 }
 
 $('#paws').onclick = event => {
   const addButton = event.target.closest('[data-add-for-paw]');
   if (addButton) {
-    openEditor([addButton.dataset.addForPaw]);
+    openEditor([addButton.dataset.addForPaw], 'paws');
     return;
   }
   const button = event.target.closest('[data-main-paw]');
@@ -358,6 +383,11 @@ $('#paws').onclick = event => {
     render();
   }
 };
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-edit-section]');
+  if (button && canEdit) openEditor([], button.dataset.editSection);
+});
 
 $('#travel').onchange = event => {
   if (event.target.id !== 'travelCountry') return;
