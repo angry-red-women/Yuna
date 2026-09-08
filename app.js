@@ -552,7 +552,7 @@ $('#passwordResetForm').onsubmit = async event => {
   }
   localStorage.removeItem(STORE);
   session = null;
-      history.replaceState(null, '', location.pathname + '?v=12');
+  history.replaceState(null, '', location.pathname + '?v=13');
   $('#passwordReset').classList.add('hidden');
   $('#login').classList.remove('hidden');
   $('#loginError').classList.add('success-message');
@@ -565,7 +565,7 @@ $('#logoutBtn').onclick = () => {
   $('#app').classList.add('hidden');
   $('#login').classList.remove('hidden');
 };
-      history.replaceState(null, '', location.pathname + '?v=13');
+
 window.addEventListener('beforeinstallprompt', event => {
   event.preventDefault();
   installPrompt = event;
