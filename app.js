@@ -42,7 +42,7 @@ const travelSources = {
 // Private Angaben stehen ausschliesslich in Supabase und nicht im öffentlichen GitHub-Code.
 const initial = {
   paws: { 'Vorne links': '', 'Vorne rechts': '', 'Hinten links': '', 'Hinten rechts': '' },
-    pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '',
+  pawCareLog: [], heat: '', milk: '', vaccine: '', vaccineNext: '', vaccineName: '',
   rabiesVaccine: '', rabiesVaccineValidFrom: '', rabiesVaccineNext: '', rabiesVaccineName: '', tick: '', tickName: '',
   tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', wormingIntervalMonths: 3, barfAmount: '',
   travelFoodAmount: '', foodTimes: '', vetName: '', vetAddress: '', vetPhone: '',
@@ -74,6 +74,13 @@ const addMonths = (date, months) => {
   if (!date) return '';
   const value = new Date(date + 'T12:00:00');
   value.setMonth(value.getMonth() + months);
+  return value.toLocaleDateString('sv-SE');
+};
+const addMonthsAndDays = (date, months, days) => {
+  const monthDate = addMonths(date, months);
+  if (!monthDate) return '';
+  const value = new Date(monthDate + 'T12:00:00');
+  value.setDate(value.getDate() + days);
   return value.toLocaleDateString('sv-SE');
 };
 const dueState = date => !date ? 'unknown' : date <= today() ? 'due' : 'ok';
@@ -318,9 +325,9 @@ function renderTravel() {
 }
 
 function render() {
-    const simparica = /simparica/i.test(data.tickName || '');
-  const tickDue = simparica ? (() => { const value = new Date(addMonths(data.tick, 4) + 'T12:00:00'); value.setDate(value.getDate() + 15); return data.tick ? value.toLocaleDateString('sv-SE') : ''; })() : addMonths(data.tick, 1);
-    const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
+  const simparica = /simparica/i.test(data.tickName || '');
+  const tickDue = simparica ? addMonthsAndDays(data.tick, 4, 15) : addMonths(data.tick, 1);
+  const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
   const rabiesVaccineDue = data.rabiesVaccineNext || '';
   const nextVaccination = [vaccineDue, rabiesVaccineDue].filter(Boolean).sort()[0] || '';
   const nextVaccinationSection = nextVaccination === rabiesVaccineDue ? 'rabiesVaccine' : 'vaccine';
@@ -335,8 +342,8 @@ function render() {
     ? 'Mindestens eine Gesundheitsangabe fehlt oder ist fällig. Die rötliche Kachel zeigt, worum es geht.'
     : 'Pflege, Gesundheit und Ferieninfos an einem Ort – damit alle wissen, was Yuna gerade braucht.';
   $('#health').innerHTML =
-        info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
-        info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
+    info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
+    info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
     info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Gültig ab: ${fmt(data.rabiesVaccineValidFrom)} · Gültig bis: ${fmt(rabiesVaccineDue)}`, rabiesStatusDate, 'rabiesVaccine') +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
@@ -353,9 +360,9 @@ function render() {
 
 const fields = [
   ['heat', 'Letzte Läufigkeit', 'date'], ['milk', 'Milcheinschuss', 'date'],
-    ['vaccine', 'Kombiimpfung gemacht am', 'date'], ['vaccineNext', 'Kombiimpfung erneuern am', 'date'], ['vaccineName', 'Kombiimpfung / Präparat'],
+  ['vaccine', 'Kombiimpfung gemacht am', 'date'], ['vaccineNext', 'Kombiimpfung erneuern am', 'date'], ['vaccineName', 'Kombiimpfung / Präparat'],
   ['rabiesVaccine', 'Tollwutimpfung gemacht am', 'date'], ['rabiesVaccineValidFrom', 'Tollwutimpfung gültig ab', 'date'], ['rabiesVaccineNext', 'Tollwutimpfung gültig bis', 'date'], ['rabiesVaccineName', 'Tollwutimpfung / Präparat'],
-    ['tick', 'Zeckenschutz verabreicht am', 'date'], ['tickName', 'Zeckenmittel'],
+  ['tick', 'Zeckenschutz verabreicht am', 'date'], ['tickName', 'Zeckenmittel'],
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'],
@@ -369,9 +376,9 @@ const fields = [
 ];
 
 const fieldGroups = {
-      tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
-    vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
-    rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
+  tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+  vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
+  rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
   heat: { title: 'Läufigkeit & Milcheinschuss ändern', keys: ['heat', 'milk'] },
   reminder: { title: 'Tierarzt-Erinnerung ändern', keys: ['reminder'] },
@@ -400,8 +407,17 @@ function openEditor(preselected = [], section = 'all') {
   if (!canEdit) return;
   editorDraft = structuredClone(data);
   selectedPaws = new Set(preselected);
-  const group = fieldGroups[section];
+  const essentialGroups = {
+    tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+    vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
+    rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] }
+  };
+  const group = essentialGroups[section] || fieldGroups[section];
   const includePaws = section === 'all' || section === 'paws';
+  const instantPawMode = section === 'paws';
+  $('#editor').dataset.section = section;
+  $('#saveBtn').classList.toggle('hidden', instantPawMode);
+  $('#cancelBtn').textContent = instantPawMode ? 'Schliessen' : 'Abbrechen';
   $('#editorTitle').textContent = group?.title || 'Yunas Angaben bearbeiten';
   const pawSection = includePaws ? `<section class="paw-edit-panel">
     <div><h3>Krallenpflege eintragen</h3><p>Schwanz oben, Kopf unten. Du kannst auch mehrere Pfoten für dasselbe Datum auswählen.</p></div>
@@ -455,7 +471,7 @@ $('#travel').onchange = event => {
   renderTravel();
 };
 
-$('#fields').onclick = event => {
+$('#fields').onclick = async event => {
   const pawButton = event.target.closest('[data-pick-paw]');
   if (pawButton) {
     const key = pawButton.dataset.pickPaw;
@@ -470,6 +486,11 @@ $('#fields').onclick = event => {
     syncLatestPawDates(editorDraft);
     renderEditorLog();
     renderPawPicker();
+    if ($('#editor').dataset.section === 'paws') {
+      data = hydrate(editorDraft);
+      await save();
+      render();
+    }
     return;
   }
 
@@ -491,6 +512,11 @@ $('#fields').onclick = event => {
     $('#pawSelection').classList.remove('warning');
     renderEditorLog();
     renderPawPicker();
+    if ($('#editor').dataset.section === 'paws') {
+      data = hydrate(editorDraft);
+      await save();
+      render();
+    }
   }
 };
 
