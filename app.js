@@ -234,6 +234,15 @@ function info(icon, title, main, sub, dueDate = '', section = '') {
   return `<article class="info status-${state}">${editButton(section)}<div class="icon">${icon}</div><h3>${title}</h3><p>${esc(sub)}</p><strong>${esc(main)}</strong><span class="status-label">${statusText(state)}</span></article>`;
 }
 
+function vaccinationsInfo(vaccineDue, rabiesDue, rabiesStatusDate) {
+  const states = [dueState(vaccineDue), dueState(rabiesStatusDate)];
+  const state = states.includes('due') ? 'due' : states.includes('unknown') ? 'unknown' : 'ok';
+  return `<article class="info vaccinations status-${state}">${editButton('vaccinations')}<div class="icon">💉</div><h3>Impfungen</h3><div class="vaccination-list">
+    <div><b>Kombiimpfung</b><p>Gemacht: ${fmt(data.vaccine)}<br>Erneuern: ${fmt(vaccineDue)}</p><strong>${esc(data.vaccineName || 'Kombiimpfung')}</strong><span class="vaccination-state status-${dueState(vaccineDue)}">${statusText(dueState(vaccineDue))}</span></div>
+    <div><b>Tollwutimpfung</b><p>Gemacht: ${fmt(data.rabiesVaccine)}<br>Gültig ab: ${fmt(data.rabiesVaccineValidFrom)}<br>Gültig bis: ${fmt(rabiesDue)}</p><strong>${esc(data.rabiesVaccineName || 'Tollwutimpfung')}</strong><span class="vaccination-state status-${dueState(rabiesStatusDate)}">${statusText(dueState(rabiesStatusDate))}</span></div>
+  </div></article>`;
+}
+
 function reminder(title, date, section) {
   const state = dueState(date);
   return `<div class="reminder status-${state}">${editButton(section)}<b>📅 ${title}</b><span>${fmt(date)}</span><span class="status-label">${statusText(state)}</span></div>`;
@@ -330,7 +339,6 @@ function render() {
   const vaccineDue = data.vaccineNext || addMonths(data.vaccine, 12);
   const rabiesVaccineDue = data.rabiesVaccineNext || '';
   const nextVaccination = [vaccineDue, rabiesVaccineDue].filter(Boolean).sort()[0] || '';
-  const nextVaccinationSection = nextVaccination === rabiesVaccineDue ? 'rabiesVaccine' : 'vaccine';
   const rabiesStatusDate = data.rabiesVaccine && rabiesVaccineDue ? rabiesVaccineDue : today();
   const heatDue = addMonths(data.heat, 6);
   const healthNeedsAttention = [tickDue, vaccineDue, rabiesStatusDate, data.wormingNext, heatDue]
@@ -343,14 +351,13 @@ function render() {
     : 'Pflege, Gesundheit und Ferieninfos an einem Ort – damit alle wissen, was Yuna gerade braucht.';
   $('#health').innerHTML =
     info('🛡️', 'Zeckenschutz', data.tickName || 'Noch offen', `Verabreicht: ${fmt(data.tick)} · ${simparica ? 'Für Yuna angenommene Wirkung (4½ Monate)' : 'Wirkung ungefähr'} bis: ${fmt(tickDue)} · Saison-Erinnerung: ${fmt(data.tickSpring)}`, tickDue, 'tick') +
-    info('💉', 'Kombiimpfung', data.vaccineName || 'Kombiimpfung', `Gemacht: ${fmt(data.vaccine)} · Erneuern: ${fmt(vaccineDue)}`, vaccineDue, 'vaccine') +
-    info('💉', 'Tollwutimpfung', data.rabiesVaccineName || 'Tollwutimpfung', `Gemacht: ${fmt(data.rabiesVaccine)} · Gültig ab: ${fmt(data.rabiesVaccineValidFrom)} · Gültig bis: ${fmt(rabiesVaccineDue)}`, rabiesStatusDate, 'rabiesVaccine') +
+    vaccinationsInfo(vaccineDue, rabiesVaccineDue, rabiesStatusDate) +
     info('〰️', 'Entwurmung', `Nächste: ${fmt(data.wormingNext)}`, `Zuletzt: ${fmt(data.worming)}`, data.wormingNext, 'worming') +
     info('♡', 'Läufigkeit & Milcheinschuss', fmt(data.heat), `${data.milk ? `Milcheinschuss: ${fmt(data.milk)} · ` : ''}Nächste Läufigkeit ungefähr ab ${fmt(heatDue)}`, heatDue, 'heat');
 
   const openSelection = openPawHistory ? new Set([openPawHistory]) : new Set();
   $('#paws').innerHTML = `<div class="card-head"><div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${editButton('paws', 'Pflege eintragen')}</div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
-  $('#reminders').innerHTML = reminder('Nächste Impfung', nextVaccination, nextVaccinationSection) + reminder('Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn');
+  $('#reminders').innerHTML = reminder('Nächste Impfung', nextVaccination, 'vaccinations') + reminder('Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn');
   renderTravel();
   $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p></div>`;
   $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><div class="card-head"><span class="pill">Tierärztin</span>${editButton('vet')}</div><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><div class="card-head"><span class="pill">24-h-Notfall</span>${editButton('emergencyVet')}</div><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
@@ -377,6 +384,7 @@ const fields = [
 
 const fieldGroups = {
   tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+  vaccinations: { title: 'Impfungen ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName', 'rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
   rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
   worming: { title: 'Entwurmung ändern', keys: ['worming', 'wormingIntervalMonths', 'wormingNext'] },
@@ -409,6 +417,7 @@ function openEditor(preselected = [], section = 'all') {
   selectedPaws = new Set(preselected);
   const essentialGroups = {
     tick: { title: 'Zeckenschutz ändern', keys: ['tick', 'tickName', 'tickSpring', 'tickAutumn'] },
+    vaccinations: { title: 'Impfungen ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName', 'rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] },
     vaccine: { title: 'Kombiimpfung ändern', keys: ['vaccine', 'vaccineNext', 'vaccineName'] },
     rabiesVaccine: { title: 'Tollwutimpfung ändern', keys: ['rabiesVaccine', 'rabiesVaccineValidFrom', 'rabiesVaccineNext', 'rabiesVaccineName'] }
   };
