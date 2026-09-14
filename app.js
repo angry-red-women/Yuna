@@ -67,6 +67,8 @@ let editorDraft = null;
 let selectedPaws = new Set();
 let openPawHistory = null;
 let selectedTravelCountry = '';
+let wetFoodTripDays = 7;
+let wetFoodTransitDays = 2;
 
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -263,6 +265,22 @@ function barfSupplementsPlan() {
   return `<section class="barf-supplements"><div class="supplement-heading"><span>🥄</span><div><h4>Zusätze zum BARF</h4><p>Wochenplan zum Beimischen ins Futter</p></div></div><div class="supplement-plan" role="table" aria-label="Wochenplan für BARF-Zusätze"><div class="supplement-day supplement-head" role="row"><b role="columnheader">Tag</b><span role="columnheader">Morgens</span><span role="columnheader">Abends</span></div>${rows}</div><p class="wild-note"><b>🦌 Ausnahme bei Wild-BARF:</b> An diesem Tag kein 3-6-9-Öl geben, da Wild diese Fettsäuren bereits im Fleisch enthält.</p></section>`;
 }
 
+function wetFoodResult() {
+  const tripDays = Math.max(0, Math.floor(Number(wetFoodTripDays) || 0));
+  const transitDays = Math.min(tripDays, Math.max(0, Math.floor(Number(wetFoodTransitDays) || 0)));
+  const stayDays = tripDays - transitDays;
+  const smallPouches = transitDays * 4;
+  const largePouchesAtDestination = Math.ceil((stayDays * 400) / 300);
+  const transitionLargePouches = tripDays ? 3 : 0;
+  const largePouches = largePouchesAtDestination + transitionLargePouches;
+  const totalWetFood = (tripDays * 400) + (tripDays ? 600 : 0);
+  return `<div class="food-calculation"><div><span>100-g-Beutel</span><strong>${smallPouches}</strong><small>${transitDays} Tag${transitDays === 1 ? '' : 'e'} ohne Kühlung × 4 Beutel</small></div><div><span>300-g-Beutel</span><strong>${largePouches}</strong><small>${largePouchesAtDestination} am Ferienort + ${transitionLargePouches} für die Umstellung</small></div></div><p class="food-total"><b>Gesamtmenge Nassfutter: ${totalWetFood.toLocaleString('de-CH')} g</b><br>Enthält zusätzlich 600 g für die drei 50/50-Tage.</p>`;
+}
+
+function wetFoodCalculator() {
+  return `<section class="wet-food-calculator"><div class="supplement-heading"><span>🧮</span><div><h4>Nassfutterrechner</h4><p>Inklusive zwei Umstellungstagen vorher und einem danach</p></div></div><div class="food-calculator-inputs"><label>Ferientage mit Nassfutter<input id="wetFoodTripDays" type="number" min="0" step="1" value="${wetFoodTripDays}"></label><label>Davon Tage unterwegs ohne Kühlung<input id="wetFoodTransitDays" type="number" min="0" max="${wetFoodTripDays}" step="1" value="${Math.min(wetFoodTripDays, wetFoodTransitDays)}"></label></div><div id="wetFoodResult">${wetFoodResult()}</div><p class="calculator-note">Berechnung: Yuna erhält auf der Reise 400 g pro Tag. Ohne Kühlung werden 100-g-Beutel gerechnet; am Ferienort 300-g-Beutel. Für die getrennte Umstellung vor und nach der Reise sind drei 300-g-Beutel eingeplant.</p></section>`;
+}
+
 function reminder(icon, title, date, section) {
   const state = dueState(date);
   return `<div class="reminder status-${state}">${editButton(section)}<span class="reminder-icon" aria-hidden="true">${icon}</span><b>${title}</b><span>${fmt(date)}</span><span class="status-label">${statusText(state)}</span></div>`;
@@ -381,7 +399,7 @@ function render() {
   $('#paws').innerHTML = `<div class="card-head"><div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${editButton('paws', 'Pflege eintragen')}</div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
   $('#reminders').innerHTML = reminder('💉', 'Nächste Impfung', nextVaccination, 'vaccinations') + reminder('🛡️', 'Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('🛡️', 'Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn') + reminder('🦴', 'BARF holen & Yuna trimmen', barfAppointmentNext, 'barfAppointment') + reminder('🦴', 'BARF & Trimmen · Folgetermin', barfAppointmentFollowing, 'barfAppointment');
   renderTravel();
-  $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p>${barfSupplementsPlan()}<p class="food-source">Bezugsquelle: <b>${esc(data.barfSource || 'Brigitte Erni')}</b><br>${esc(data.barfAddress || 'Mühlestich 1, 8566 Lippoldswilen')}</p><iframe class="vet-map" title="Karte zur BARF-Bezugsquelle" src="${mapEmbedHref(data.barfAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${esc(data.barfWebsite)}" target="_blank" rel="noopener">Webseite öffnen</a><a class="primary" href="${mapRouteHref(data.barfSource, data.barfAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><div class="food-product"><img src="https://tier-im-mittelpunkt.ch/cdn/shop/files/AmanovaDeliciousLambPumpkin-KoestlichesLammmitKuerbis_1200x.jpg?v=1745941037" alt="Amanova Delicious Lamb Nassfutter" loading="lazy"><div><b>${esc(data.travelFoodProduct || 'Amanova Delicious Lamb & Pumpkin')}</b><small>Erhältlich bei ${esc(data.travelFoodShop || 'TIER IM MITTELPUNKT')}</small></div></div><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p><a class="food-order primary" href="${esc(data.travelFoodUrl)}" target="_blank" rel="noopener">Nassfutter bestellen ↗</a></div>`;
+  $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p>${barfSupplementsPlan()}<p class="food-source">Bezugsquelle: <b>${esc(data.barfSource || 'Brigitte Erni')}</b><br>${esc(data.barfAddress || 'Mühlestich 1, 8566 Lippoldswilen')}</p><iframe class="vet-map" title="Karte zur BARF-Bezugsquelle" src="${mapEmbedHref(data.barfAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${esc(data.barfWebsite)}" target="_blank" rel="noopener">Webseite öffnen</a><a class="primary" href="${mapRouteHref(data.barfSource, data.barfAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><div class="food-product"><img src="https://tier-im-mittelpunkt.ch/cdn/shop/files/AmanovaDeliciousLambPumpkin-KoestlichesLammmitKuerbis_1200x.jpg?v=1745941037" alt="Amanova Delicious Lamb Nassfutter" loading="lazy"><div><b>${esc(data.travelFoodProduct || 'Amanova Delicious Lamb & Pumpkin')}</b><small>Erhältlich bei ${esc(data.travelFoodShop || 'TIER IM MITTELPUNKT')}</small></div></div><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p>${wetFoodCalculator()}<a class="food-order primary" href="${esc(data.travelFoodUrl)}" target="_blank" rel="noopener">Nassfutter bestellen ↗</a></div>`;
   $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><div class="card-head"><span class="pill">Tierärztin</span>${editButton('vet')}</div><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><div class="card-head"><span class="pill">24-h-Notfall</span>${editButton('emergencyVet')}</div><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
   $('#passport').innerHTML = `<div class="card-head"><h3>📘 Hundepass</h3>${editButton('passport')}</div><div class="passport-grid"><dl><dt>Passnummer</dt><dd class="passport-number">${esc(data.passportNumber || 'Noch offen')}</dd><dt>Offizieller Name</dt><dd>${esc(data.officialName || 'Noch offen')}</dd><dt>Geburtsdatum</dt><dd>${fmt(data.birthDate)}</dd></dl><dl><dt>Tier</dt><dd>${esc([data.species, data.breed, data.sex, data.color].filter(Boolean).join(' · ') || 'Noch offen')}</dd><dt>Mikrochip</dt><dd class="passport-number">${esc(data.chipNumber || 'Noch offen')}</dd><dt>Chip eingesetzt</dt><dd>${fmt(data.chipDate)}${data.chipLocation ? ` · ${esc(data.chipLocation)}` : ''}</dd></dl><dl class="passport-full"><dt>Amicus-Registrierung</dt><dd>${esc(data.passportAmicusPhone || 'Noch offen')} · ${esc(data.passportAmicusEmail || '')}<br>${esc(data.passportAmicusSite || '')}</dd></dl><dl class="passport-full"><dt>Ausgestellt von</dt><dd><b>${esc(data.passportIssuer || 'Noch offen')}</b><br>${esc(data.passportIssuerClinic || '')}<br>${esc(data.passportIssuerAddress || '')}<br>${esc(data.passportIssuerPhone || '')}${data.passportIssuerEmail ? ` · ${esc(data.passportIssuerEmail)}` : ''}<br>Ausgestellt am: ${fmt(data.passportIssueDate)}</dd></dl></div>`;
   $('#holiday').innerHTML = `<div class="card-head"><h3>Wichtig in den Ferien</h3>${editButton('holiday')}</div><p>${esc(data.notes || 'Noch keine Hinweise eingetragen.')}</p>`;
@@ -502,6 +520,16 @@ $('#travel').onchange = event => {
   if (event.target.id !== 'travelCountry') return;
   selectedTravelCountry = event.target.value;
   renderTravel();
+};
+
+$('#food').oninput = event => {
+  if (!['wetFoodTripDays', 'wetFoodTransitDays'].includes(event.target.id)) return;
+  wetFoodTripDays = Math.max(0, Math.floor(Number($('#wetFoodTripDays').value) || 0));
+  wetFoodTransitDays = Math.min(wetFoodTripDays, Math.max(0, Math.floor(Number($('#wetFoodTransitDays').value) || 0)));
+  $('#wetFoodTripDays').value = wetFoodTripDays;
+  $('#wetFoodTransitDays').max = wetFoodTripDays;
+  $('#wetFoodTransitDays').value = wetFoodTransitDays;
+  $('#wetFoodResult').innerHTML = wetFoodResult();
 };
 
 $('#fields').onclick = async event => {
