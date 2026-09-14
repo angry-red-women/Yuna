@@ -46,6 +46,7 @@ const initial = {
   rabiesVaccine: '', rabiesVaccineValidFrom: '', rabiesVaccineNext: '', rabiesVaccineName: '', tick: '', tickName: '',
   tickSpring: '', tickAutumn: '', worming: '', wormingNext: '', wormingIntervalMonths: 3, barfAmount: '',
   barfSource: 'Brigitte Erni', barfAddress: 'Mühlestich 1, 8566 Lippoldswilen', barfWebsite: 'https://limecastle.ch/wp/',
+  barfAppointmentLast: '2026-06-13', barfAppointmentNext: '2026-10-25', barfAppointmentIntervalMonths: 4,
   travelFoodAmount: '', foodTimes: '',
   travelFoodProduct: 'Amanova Delicious Lamb & Pumpkin – Köstliches Lamm mit Kürbis',
   travelFoodShop: 'TIER IM MITTELPUNKT',
@@ -360,6 +361,8 @@ function render() {
   const nextVaccination = [vaccineDue, rabiesVaccineDue].filter(Boolean).sort()[0] || '';
   const rabiesStatusDate = data.rabiesVaccine && rabiesVaccineDue ? rabiesVaccineDue : today();
   const heatDue = addMonths(data.heat, 6);
+  const barfAppointmentNext = data.barfAppointmentNext || addMonths(data.barfAppointmentLast, Number(data.barfAppointmentIntervalMonths) || 4);
+  const barfAppointmentFollowing = addMonths(barfAppointmentNext, Number(data.barfAppointmentIntervalMonths) || 4);
   const healthNeedsAttention = [tickDue, vaccineDue, rabiesStatusDate, data.wormingNext, heatDue]
     .some(date => dueState(date) !== 'ok');
   const hero = $('.hero');
@@ -376,7 +379,7 @@ function render() {
 
   const openSelection = openPawHistory ? new Set([openPawHistory]) : new Set();
   $('#paws').innerHTML = `<div class="card-head"><div class="paw-map-copy"><h3>Pfote direkt antippen</h3><p>Wähle eine Pfote in der Zeichnung. Darunter klappt ihre persönliche Schleif-Historie auf.</p></div>${editButton('paws', 'Pflege eintragen')}</div>${dogMap(data, false, openSelection)}${pawHistoryDropdown(openPawHistory)}`;
-  $('#reminders').innerHTML = reminder('Nächste Impfung', nextVaccination, 'vaccinations') + reminder('Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn');
+  $('#reminders').innerHTML = reminder('Nächste Impfung', nextVaccination, 'vaccinations') + reminder('Zeckenschutz Frühling', data.tickSpring, 'tickSpring') + reminder('Zeckenschutz Spätsommer', data.tickAutumn, 'tickAutumn') + reminder('BARF holen & Yuna trimmen', barfAppointmentNext, 'barfAppointment') + reminder('BARF & Trimmen · Folgetermin', barfAppointmentFollowing, 'barfAppointment');
   renderTravel();
   $('#food').innerHTML = `<div class="card-head"><h3>🦴 Futter</h3>${editButton('food')}</div><div class="food-block"><span class="pill">Zuhause · BARF</span><strong>2 × ${esc(data.barfAmount || '–')}</strong><p>Jeweils ${esc(data.barfAmount || '–')} am Morgen und ${esc(data.barfAmount || '–')} am Abend</p>${barfSupplementsPlan()}<p class="food-source">Bezugsquelle: <b>${esc(data.barfSource || 'Brigitte Erni')}</b><br>${esc(data.barfAddress || 'Mühlestich 1, 8566 Lippoldswilen')}</p><iframe class="vet-map" title="Karte zur BARF-Bezugsquelle" src="${mapEmbedHref(data.barfAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${esc(data.barfWebsite)}" target="_blank" rel="noopener">Webseite öffnen</a><a class="primary" href="${mapRouteHref(data.barfSource, data.barfAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="food-block"><span class="pill">Reise · Nassfutter</span><div class="food-product"><img src="https://tier-im-mittelpunkt.ch/cdn/shop/files/AmanovaDeliciousLambPumpkin-KoestlichesLammmitKuerbis_1200x.jpg?v=1745941037" alt="Amanova Delicious Lamb Nassfutter" loading="lazy"><div><b>${esc(data.travelFoodProduct || 'Amanova Delicious Lamb & Pumpkin')}</b><small>Erhältlich bei ${esc(data.travelFoodShop || 'TIER IM MITTELPUNKT')}</small></div></div><strong>2 × ${esc(data.travelFoodAmount || '–')}</strong><p>Jeweils ${esc(data.travelFoodAmount || '–')} am Morgen und ${esc(data.travelFoodAmount || '–')} am Abend</p><a class="food-order primary" href="${esc(data.travelFoodUrl)}" target="_blank" rel="noopener">Nassfutter bestellen ↗</a></div>`;
   $('#vet').innerHTML = `<h3>📍 Tierarzt</h3><div class="vet-block"><div class="card-head"><span class="pill">Tierärztin</span>${editButton('vet')}</div><b>${esc(data.vetName || 'Noch offen')}</b><p>${esc(data.vetAddress)}<br>${esc(data.vetPhone)}</p><iframe class="vet-map" title="Karte zur Tierärztin" src="${mapEmbedHref(data.vetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.vetPhone)}">Tierärztin anrufen</a><a class="primary" href="${mapRouteHref(data.vetName, data.vetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div><div class="vet-block"><div class="card-head"><span class="pill">24-h-Notfall</span>${editButton('emergencyVet')}</div><b>${esc(data.emergencyVetName || 'Noch offen')}</b><p>${esc(data.emergencyVetAddress)}<br>${esc(data.emergencyVetPhone)}</p><iframe class="vet-map" title="Karte zur Notfallklinik" src="${mapEmbedHref(data.emergencyVetAddress)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><div class="vet-actions"><a class="outline" href="${telHref(data.emergencyVetPhone)}">Notfallklinik anrufen</a><a class="primary" href="${mapRouteHref(data.emergencyVetName, data.emergencyVetAddress)}" target="_blank" rel="noopener">Route mit dem Auto</a></div></div>`;
@@ -392,6 +395,7 @@ const fields = [
   ['tickSpring', 'Zecken-Erinnerung Frühling', 'date'], ['tickAutumn', 'Zecken-Erinnerung Spätsommer', 'date'],
   ['worming', 'Letzte Entwurmung', 'date'], ['wormingIntervalMonths', 'Intervall Entwurmung (Monate)', 'number'], ['wormingNext', 'Nächste Entwurmung laut Produkt', 'date'],
   ['reminder', 'Nächster Termin gemäss Tierarzt', 'date'], ['barfAmount', 'BARF pro Mahlzeit'], ['barfSource', 'BARF-Bezugsquelle'], ['barfAddress', 'Adresse der BARF-Bezugsquelle'], ['barfWebsite', 'Webseite der BARF-Bezugsquelle'],
+  ['barfAppointmentLast', 'Letzter Besuch bei Brigitte', 'date'], ['barfAppointmentNext', 'Nächster Termin für BARF & Trimmen', 'date'], ['barfAppointmentIntervalMonths', 'Terminintervall (Monate)', 'number'],
   ['travelFoodAmount', 'Nassfutter auf Reisen pro Mahlzeit'], ['travelFoodProduct', 'Nassfutter / Produkt'], ['travelFoodShop', 'Bestellshop'], ['travelFoodUrl', 'Bestelllink'], ['foodTimes', 'Futterzeiten'],
   ['vetName', 'Tierärztin'], ['vetPhone', 'Telefon Tierärztin'], ['vetAddress', 'Adresse Tierärztin'],
   ['emergencyVetName', 'Notfallklinik'], ['emergencyVetPhone', 'Telefon Notfallklinik'], ['emergencyVetAddress', 'Adresse Notfallklinik'], ['notes', 'Ferienhinweise', 'textarea'],
@@ -411,6 +415,7 @@ const fieldGroups = {
   reminder: { title: 'Tierarzt-Erinnerung ändern', keys: ['reminder'] },
   tickSpring: { title: 'Frühlings-Erinnerung ändern', keys: ['tickSpring'] },
   tickAutumn: { title: 'Spätsommer-Erinnerung ändern', keys: ['tickAutumn'] },
+  barfAppointment: { title: 'BARF- und Trimmtermine ändern', keys: ['barfAppointmentLast', 'barfAppointmentNext', 'barfAppointmentIntervalMonths'] },
   food: { title: 'Futter ändern', keys: ['barfAmount', 'barfSource', 'barfAddress', 'barfWebsite', 'travelFoodAmount', 'travelFoodProduct', 'travelFoodShop', 'travelFoodUrl', 'foodTimes'] },
   vet: { title: 'Tierärztin ändern', keys: ['vetName', 'vetPhone', 'vetAddress'] },
   emergencyVet: { title: 'Notfallklinik ändern', keys: ['emergencyVetName', 'emergencyVetPhone', 'emergencyVetAddress'] },
@@ -549,17 +554,31 @@ $('#fields').onclick = async event => {
 };
 
 $('#fields').onchange = event => {
-  if (!['worming', 'wormingIntervalMonths'].includes(event.target.dataset.key)) return;
-  const lastInput = document.querySelector('[data-key="worming"]');
-  const intervalInput = document.querySelector('[data-key="wormingIntervalMonths"]');
-  const nextInput = document.querySelector('[data-key="wormingNext"]');
-  const interval = Math.max(1, Number(intervalInput.value) || 3);
-  const next = addMonths(lastInput.value, interval);
-  intervalInput.value = String(interval);
-  nextInput.value = next;
-  editorDraft.worming = lastInput.value;
-  editorDraft.wormingIntervalMonths = interval;
-  editorDraft.wormingNext = next;
+  const key = event.target.dataset.key;
+  if (['worming', 'wormingIntervalMonths'].includes(key)) {
+    const lastInput = document.querySelector('[data-key="worming"]');
+    const intervalInput = document.querySelector('[data-key="wormingIntervalMonths"]');
+    const nextInput = document.querySelector('[data-key="wormingNext"]');
+    const interval = Math.max(1, Number(intervalInput.value) || 3);
+    const next = addMonths(lastInput.value, interval);
+    intervalInput.value = String(interval);
+    nextInput.value = next;
+    editorDraft.worming = lastInput.value;
+    editorDraft.wormingIntervalMonths = interval;
+    editorDraft.wormingNext = next;
+  }
+  if (['barfAppointmentLast', 'barfAppointmentIntervalMonths'].includes(key)) {
+    const lastInput = document.querySelector('[data-key="barfAppointmentLast"]');
+    const intervalInput = document.querySelector('[data-key="barfAppointmentIntervalMonths"]');
+    const nextInput = document.querySelector('[data-key="barfAppointmentNext"]');
+    const interval = Math.max(1, Number(intervalInput.value) || 4);
+    const next = addMonths(lastInput.value, interval);
+    intervalInput.value = String(interval);
+    nextInput.value = next;
+    editorDraft.barfAppointmentLast = lastInput.value;
+    editorDraft.barfAppointmentIntervalMonths = interval;
+    editorDraft.barfAppointmentNext = next;
+  }
 };
 
 $('#editForm').onsubmit = async event => {
